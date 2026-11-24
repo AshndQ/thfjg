@@ -1,0 +1,1965 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Комната</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #0b0c0f;
+    --bar: #0f1114;
+    --panel: #15171b;
+    --line: #23262d;
+    --chip: #20232a;
+    --chip-hover: #2a2e36;
+    --fg: #e9ebef;
+    --muted: #8a909b;
+    --accent: #4c8dff;
+    --green: #3ddc84;
+    --red: #ff6b6b;
+    --red-strong: #e8334f;
+    --avatar-bg: #4a505b;
+    --avatar-fg: #cfd3da;
+    --radius: 10px;
+    --chat-size: 14px;
+    --font: Rubik, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font: 14px/1.45 var(--font);
+  }
+  [hidden] { display: none !important; }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  svg { display: block; }
+  .slash { display: none; }
+
+  /* ---------- Lobby ---------- */
+  #lobby { min-height: 100%; display: grid; place-items: center; padding: 24px 16px; }
+  .card {
+    width: min(420px, 100%);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 28px;
+    display: grid;
+    gap: 16px;
+  }
+  .card h1 { margin: 0; font-size: 22px; font-weight: 600; }
+  .card p { margin: 0; color: var(--muted); }
+  label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+  input[type=text], input[type=password], select {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--fg);
+    width: 100%;
+  }
+  .btn {
+    background: var(--accent);
+    color: #07101f;
+    border: 0;
+    border-radius: 8px;
+    padding: 11px 16px;
+    font-weight: 600;
+  }
+  .btn.small { padding: 8px 14px; font-size: 13px; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .warn {
+    background: #33260f;
+    border: 1px solid #55411a;
+    color: #f0c674;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  /* ---------- App shell + top bar ---------- */
+  #app { height: 100%; display: flex; flex-direction: column; }
+  .topbar {
+    flex: none;
+    position: relative;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--bar);
+    border-bottom: 1px solid var(--line);
+  }
+  .title {
+    margin: 0;
+    font-size: 16px; font-weight: 600;
+    min-width: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .tb {
+    width: 38px; height: 38px;
+    display: grid; place-items: center;
+    border: 0; border-radius: 8px;
+    background: var(--chip);
+    font-size: 18px; line-height: 1;
+    flex: none;
+  }
+  .tb:hover { background: var(--chip-hover); }
+  .tb.on { background: var(--accent); color: #07101f; }
+  .tbtxt {
+    height: 38px;
+    padding: 0 14px;
+    border: 0; border-radius: 8px;
+    background: var(--chip);
+    font-size: 13px; font-weight: 500;
+    white-space: nowrap;
+    flex: none;
+  }
+  .tbtxt:hover { background: var(--chip-hover); }
+  .tbtxt .n { color: var(--muted); margin-left: 4px; font-weight: 400; }
+  .tbtxt.leave { background: var(--red-strong); color: #fff; }
+  .tbtxt.leave:hover { background: #f0425e; }
+  .tbsep { width: 1px; height: 26px; background: var(--line); margin: 0 4px; flex: none; }
+  .tbwrap { position: relative; flex: none; }
+  .pop2 {
+    position: absolute; right: 0; top: calc(100% + 8px);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+    z-index: 10;
+  }
+  .pop2.reactpop { display: flex; gap: 2px; padding: 6px; }
+  .rbtn { background: transparent; border: 0; border-radius: 8px; font-size: 24px; padding: 4px 8px; }
+  .rbtn:hover { background: var(--chip); }
+  .pop2.parts { width: min(320px, 88vw); max-height: 60vh; overflow: auto; padding: 6px; }
+  .prow { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px; }
+  .prow:hover { background: var(--chip); }
+  .prow .cav { width: 28px; height: 28px; }
+  .pn { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pm { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .pop2.ctlpop { width: min(400px, 92vw); max-height: 60vh; overflow: auto; padding: 6px; }
+  .ctlnote { margin: 0; padding: 6px 8px 10px; color: var(--muted); font-size: 12px; }
+  .cbtns { display: flex; gap: 4px; flex: none; }
+  .cbtn {
+    width: 34px; height: 34px;
+    border: 0; border-radius: 8px;
+    background: var(--chip); color: var(--fg);
+    display: grid; place-items: center;
+  }
+  .cbtn:hover { background: var(--chip-hover); }
+  .cbtn.idle { color: var(--muted); }
+  .cbtn.locked { color: var(--red); }
+  .cbtn.locked .slash { display: block; }
+
+  /* ---------- Workspace ---------- */
+  .workspace {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    gap: 10px;
+    padding: 10px;
+    grid-template-columns: minmax(340px, 1fr) 2fr;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "video pres" "chat pres";
+  }
+  .p-video { grid-area: video; }
+  .p-chat  { grid-area: chat; }
+  .p-pres  { grid-area: pres; }
+
+  .panel {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .panel > header {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px;
+  }
+  .spacer { flex: 1; }
+  .chip, .tab {
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    color: var(--muted);
+    position: relative;
+  }
+  .chip { background: var(--chip); color: var(--fg); }
+  .tab:hover { background: var(--chip); }
+  .tab.on { background: var(--chip); color: var(--fg); }
+  .tab .dot {
+    position: absolute; top: 4px; right: 4px;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent);
+  }
+  .ib {
+    width: 32px; height: 32px;
+    display: grid; place-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    color: var(--muted);
+    flex: none;
+  }
+  .ib:hover { background: var(--chip); color: var(--fg); }
+  .ib:disabled { opacity: .55; cursor: default; }
+  .ib:disabled:hover { background: transparent; }
+  .ib.off, .ib.danger { color: var(--red); }
+  .ib.off .slash { display: block; }
+  .txtbtn {
+    background: var(--chip);
+    border: 0;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+  .txtbtn:hover { background: var(--chip-hover); }
+  .muted { color: var(--muted); font-size: 13px; }
+
+  /* maximize one panel */
+  .workspace[data-max="video"], .workspace[data-max="chat"], .workspace[data-max="pres"] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: "only";
+  }
+  .workspace[data-max="video"] .p-video,
+  .workspace[data-max="chat"] .p-chat,
+  .workspace[data-max="pres"] .p-pres { grid-area: only; }
+  .workspace[data-max="video"] .panel:not(.p-video),
+  .workspace[data-max="chat"] .panel:not(.p-chat),
+  .workspace[data-max="pres"] .panel:not(.p-pres) { display: none; }
+
+  /* ---------- Video panel ---------- */
+  .vgrid {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 0 10px 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 4px;
+    align-content: start;
+  }
+  .tile {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    background: linear-gradient(160deg, #2b3039, #181b21);
+    border: 2px solid transparent;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .tile.speaking { border-color: var(--green); }
+  .tile video {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    background: #000;
+  }
+  .tile video.off { opacity: 0; }
+  .tile.mine video { transform: scaleX(-1); }
+  body.no-mirror .tile.mine video { transform: none; }
+  .tile .avatar {
+    position: absolute; left: 50%; top: 50%;
+    width: min(46%, 120px);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--avatar-bg);
+    color: var(--avatar-fg);
+    display: grid; place-items: center;
+    pointer-events: none;
+  }
+  .tile .avatar svg { width: 62%; height: 62%; }
+  .tile .avatar svg.full { width: 100%; height: 100%; }
+  .tile .avatar.hide { display: none; }
+  .avimg { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tile .lbl {
+    position: absolute; left: 6px; bottom: 6px;
+    max-width: calc(100% - 52px);
+    background: rgba(24, 27, 33, .88);
+    border-radius: 5px;
+    padding: 3px 8px;
+    font-size: 12px; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .tile .badge {
+    position: absolute; left: 8px; top: 8px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: rgba(24, 27, 33, .88);
+    color: #fff;
+    display: grid; place-items: center;
+  }
+  .tile .badge svg { width: 14px; height: 14px; }
+  .badge .slash { display: block; }
+  .tile .hand {
+    position: absolute; right: 8px; bottom: 8px;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #f5b942;
+    display: grid; place-items: center;
+    font-size: 15px; line-height: 1;
+  }
+  .fly {
+    position: absolute; bottom: 36px;
+    font-size: 34px; line-height: 1;
+    pointer-events: none;
+    transform: translateX(-50%);
+  }
+  @keyframes floatup {
+    from { opacity: 1; transform: translate(-50%, 0); }
+    to { opacity: 0; transform: translate(-50%, -90px); }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .fly { animation: floatup 2.4s ease-out forwards; }
+  }
+
+  /* ---------- Chat panel ---------- */
+  .logs { flex: 1; min-height: 0; position: relative; }
+  .log {
+    height: 100%;
+    overflow-y: auto;
+    padding: 4px 14px 10px;
+    display: grid;
+    gap: 14px;
+    align-content: start;
+    font-size: var(--chat-size);
+  }
+  .msg { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 10px; }
+  .cav {
+    width: 32px; height: 32px; border-radius: 50%;
+    overflow: hidden;
+    background: var(--avatar-bg); color: var(--avatar-fg);
+    display: grid; place-items: center;
+    flex: none;
+  }
+  .cav svg { width: 62%; height: 62%; }
+  .cav svg.full { width: 100%; height: 100%; }
+  .mh .n { font-weight: 600; }
+  .mh .t { color: var(--muted); font-size: 12px; margin-left: 8px; }
+  .mt { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .file { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+  .file .th {
+    width: 32px; height: 32px; border-radius: 4px; flex: none;
+    background: var(--chip); color: var(--muted);
+    display: grid; place-items: center;
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    object-fit: cover; overflow: hidden;
+  }
+  .file a { color: var(--fg); text-decoration: none; overflow-wrap: anywhere; }
+  .file a:hover { text-decoration: underline; }
+  .file .fs { color: var(--muted); font-size: 12px; }
+  .sysmsg { color: var(--muted); font-size: 13px; font-style: italic; text-align: center; }
+
+  #chatForm {
+    flex: none;
+    display: flex; align-items: center; gap: 2px;
+    padding: 6px 10px;
+    border-top: 1px solid var(--line);
+  }
+  #chatForm .vr { width: 1px; height: 24px; background: var(--line); margin: 0 6px; }
+  #chatInput {
+    flex: 1; min-width: 0;
+    background: transparent; border: 0; padding: 8px 4px;
+    color: var(--fg);
+  }
+  #chatInput:focus-visible { outline: none; }
+  #chatInput::placeholder { color: var(--muted); }
+  #chatInput:disabled::placeholder { color: var(--red); }
+  .emo {
+    position: absolute; left: 10px; bottom: 56px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 8px;
+    display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px;
+    z-index: 5;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
+  }
+  .emo button { background: transparent; border: 0; border-radius: 6px; font-size: 20px; padding: 4px; }
+  .emo button:hover { background: var(--chip); }
+  .p-chat > header { flex-wrap: wrap; }
+  .mdel {
+    position: absolute; right: 0; top: 0;
+    width: 24px; height: 24px;
+    display: grid; place-items: center;
+    background: transparent; border: 0; border-radius: 6px;
+    color: var(--muted);
+  }
+  .mdel svg { width: 14px; height: 14px; }
+  .mdel:hover { background: var(--chip); color: var(--red); }
+  .chip.admin { background: #2b2210; color: #f0c674; }
+
+  /* admin buttons on tiles */
+  .tctl { position: absolute; right: 6px; top: 6px; display: flex; gap: 4px; }
+  .tbtn {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 0; background: rgba(24, 27, 33, .88); color: #fff;
+    display: grid; place-items: center;
+  }
+  .tbtn svg { width: 15px; height: 15px; }
+  .tbtn:hover { background: var(--chip-hover); }
+  .tbtn.off { color: var(--red); }
+  .tbtn.off .slash { display: block; }
+
+  /* ---------- Presentation panel ---------- */
+  .presBody { flex: 1; min-height: 0; position: relative; background: #0f1114; margin: 0 10px 10px; border-radius: 6px; overflow: hidden; }
+  .presBody video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+  .p-pres:not(.live) .presBody video { visibility: hidden; }
+  .presEmpty {
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    padding: 16px; text-align: center; margin: 0;
+    color: var(--muted);
+  }
+  .p-pres.live .presEmpty { display: none; }
+
+  /* ---------- Settings dialog ---------- */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, .6);
+    display: grid; place-items: center;
+    padding: 16px;
+    z-index: 25;
+  }
+  .dlg {
+    width: min(760px, 100%);
+    height: min(600px, calc(100dvh - 32px));
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .dh {
+    flex: none;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px 14px 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .dh h2 { margin: 0; font-size: 20px; font-weight: 600; }
+  .dbody { flex: 1; min-height: 0; display: grid; grid-template-columns: 220px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+  .dnav { padding: 12px; display: flex; flex-direction: column; gap: 4px; border-right: 1px solid var(--line); overflow: auto; }
+  .nav {
+    display: flex; align-items: center; gap: 10px;
+    background: transparent; border: 0; border-radius: 8px;
+    padding: 10px 12px; text-align: left; font-size: 14px;
+  }
+  .nav:hover, .nav.on { background: var(--chip); }
+  .ni { display: grid; color: var(--muted); }
+  .dsecs { overflow-y: auto; padding: 20px; min-width: 0; }
+  .dsec { display: grid; gap: 16px; align-content: start; }
+  .dsec h3 { margin: 0; font-size: 16px; font-weight: 600; }
+  .dsec .lab { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .switch {
+    position: relative; width: 44px; height: 24px; flex: none;
+    border: 0; border-radius: 12px; background: var(--chip-hover);
+  }
+  .switch::after {
+    content: ""; position: absolute; top: 3px; left: 3px;
+    width: 18px; height: 18px; border-radius: 50%; background: #fff;
+  }
+  .switch[aria-checked="true"] { background: var(--accent); }
+  .switch[aria-checked="true"]::after { left: 23px; }
+  .preview {
+    position: relative; width: 100%; max-height: 270px;
+    aspect-ratio: 16 / 9;
+    background: #000; border-radius: 10px; overflow: hidden;
+  }
+  .previewVideo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+  body.no-mirror .previewVideo { transform: none; }
+  .prevEmpty { position: absolute; inset: 0; margin: 0; display: grid; place-items: center; padding: 12px; text-align: center; color: var(--muted); }
+  .help {
+    background: var(--chip); border-radius: 10px; padding: 14px;
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  }
+  .help p { margin: 4px 0 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+  .help > div { min-width: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .csz { border: 0; border-radius: 8px; background: var(--chip); padding: 8px 16px; font-size: 13px; }
+  .csz:hover { background: var(--chip-hover); }
+  .csz.on { background: #1d3358; color: #8bb8ff; }
+  .avgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .avcell {
+    position: relative; aspect-ratio: 1;
+    border: 0; border-radius: 10px; background: var(--chip);
+    display: grid; place-items: center; padding: 0;
+  }
+  .avcell:hover { background: var(--chip-hover); }
+  .avcell.up { border: 2px dashed var(--line); background: transparent; color: var(--muted); font-size: 13px; }
+  .avcell.up:hover { background: var(--chip); }
+  .avc {
+    width: 58%; aspect-ratio: 1; border-radius: 50%; overflow: hidden;
+    background: var(--avatar-bg); color: var(--avatar-fg);
+    display: grid; place-items: center;
+  }
+  .avc svg { width: 62%; height: 62%; }
+  .avc svg.full { width: 100%; height: 100%; }
+  .tick {
+    position: absolute; top: 6px; right: 6px;
+    width: 20px; height: 20px; border-radius: 5px;
+    background: var(--bg); border: 1px solid var(--line);
+    display: grid; place-items: center; color: #fff;
+  }
+  .tick svg { display: none; width: 14px; height: 14px; }
+  .avcell.sel .tick { background: var(--accent); border-color: var(--accent); }
+  .avcell.sel .tick svg { display: block; }
+
+  /* ---------- Modal (wrong password) ---------- */
+  .modal {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, .6);
+    display: grid; place-items: center;
+    padding: 16px;
+    z-index: 30;
+  }
+  .modal .box {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 24px;
+    width: min(340px, 100%);
+    display: grid; gap: 16px;
+    text-align: center;
+  }
+  .modal p { margin: 0; font-size: 18px; font-weight: 600; color: var(--red); }
+
+  /* ---------- Toast ---------- */
+  #toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: var(--chip-hover); color: var(--fg);
+    border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 14px; font-size: 13px;
+    z-index: 40; max-width: calc(100% - 32px);
+  }
+
+  /* ---------- Narrow screens ---------- */
+  @media (max-width: 900px) {
+    .workspace {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1.1fr) minmax(0, 1fr);
+      grid-template-areas: "video" "chat";
+    }
+    .workspace.has-pres {
+      grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-areas: "video" "pres" "chat";
+    }
+    .p-pres:not(.live) { display: none; }
+    .vgrid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  }
+  @media (max-width: 700px) {
+    .title { display: none; }
+    .topbar { gap: 6px; padding: 8px; flex-wrap: wrap; }
+    .tbtxt { padding: 0 10px; }
+    .tbsep { display: none; }
+    .topbar .spacer { display: block; }
+  }
+  @media (max-width: 640px) {
+    .dbody { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+    .dnav { flex-direction: row; border-right: 0; border-bottom: 1px solid var(--line); overflow-x: auto; }
+    .nav { white-space: nowrap; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .ib, .tab, .txtbtn, .tile, .tb, .tbtxt, .nav { transition: background-color .15s, color .15s, border-color .15s; }
+  }
+</style>
+</head>
+<body>
+
+<section id="lobby">
+  <form class="card" id="joinForm">
+    <h1>Видеокомната</h1>
+    <p>Голос, видео, чат и показ экрана. Отправьте ссылку на комнату друзьям, и они зайдут к вам.</p>
+    <div class="warn" id="secureWarn" hidden>
+      Страница открыта не по https и не с localhost, поэтому браузер не даст доступ к камере и микрофону. Запустите её через локальный сервер или выложите на https-хостинг.
+    </div>
+    <label for="name">Ваше имя
+      <input type="text" id="name" maxlength="30" placeholder="Например, Аня" autocomplete="nickname">
+    </label>
+    <label for="roomName">Комната
+      <input type="text" id="roomName" maxlength="40" placeholder="оставьте пустым для новой" autocomplete="off">
+    </label>
+    <label for="adminPw">Пароль для администраторов и модераторов
+      <input type="password" id="adminPw" maxlength="60" placeholder="оставьте пустым, если вы не администратор" autocomplete="off">
+    </label>
+    <button class="btn" id="joinBtn" type="submit">Войти</button>
+    <p id="lobbyErr" class="warn" hidden></p>
+  </form>
+</section>
+
+<main id="app" hidden>
+
+  <header class="topbar">
+    <h1 class="title" id="roomTitle">Комната</h1>
+    <span class="spacer"></span>
+    <div class="tbwrap">
+      <button class="tb" id="reactBtn" type="button" data-icon="smile" title="Реакция" aria-label="Реакция"></button>
+      <div class="pop2 reactpop" id="reactPop" hidden></div>
+    </div>
+    <button class="tb" id="handBtn" type="button" title="Поднять руку" aria-label="Поднять руку">✋</button>
+    <span class="tbsep"></span>
+    <div class="tbwrap">
+      <button class="tbtxt" id="partsBtn" type="button">Участники <span class="n" id="partsCount">1</span></button>
+      <div class="pop2 parts" id="partsPop" hidden></div>
+    </div>
+    <div class="tbwrap" id="ctlWrap" hidden>
+      <button class="tbtxt" id="ctlBtn" type="button">Панель управления</button>
+      <div class="pop2 ctlpop" id="ctlPop" hidden></div>
+    </div>
+    <button class="tbtxt" id="settingsBtn" type="button">Настройки</button>
+    <button class="tbtxt leave" id="leaveBtn" type="button">Выход</button>
+  </header>
+
+  <div class="workspace" id="ws" data-max="">
+
+    <section class="panel p-video">
+      <header>
+        <span class="chip" id="videoChip">Видео</span>
+        <span class="chip admin" id="adminChip" hidden>Администратор</span>
+        <button class="ib" id="linkBtn" type="button" data-icon="link" title="Скопировать ссылку на комнату" aria-label="Скопировать ссылку на комнату"></button>
+        <span class="spacer"></span>
+        <button class="ib off" id="camBtn" type="button" data-icon="video" title="Камера" aria-label="Камера"></button>
+        <button class="ib" id="micBtn" type="button" data-icon="mic" title="Микрофон" aria-label="Микрофон"></button>
+        <button class="ib" id="setBtn" type="button" data-icon="gear" title="Настройки камеры и микрофона" aria-label="Настройки камеры и микрофона"></button>
+        <button class="ib" type="button" data-max-target="video" data-icon="expand" title="Развернуть" aria-label="Развернуть"></button>
+      </header>
+      <div class="vgrid" id="grid"></div>
+    </section>
+
+    <section class="panel p-chat">
+      <header>
+        <button class="tab on" type="button" data-tab="chat">Чат<i class="dot" hidden></i></button>
+        <button class="tab" type="button" data-tab="q">Вопросы<i class="dot" hidden></i></button>
+        <span class="spacer"></span>
+        <button class="txtbtn" id="lockBtn" type="button" hidden>Закрыть чат</button>
+        <button class="txtbtn" id="clearBtn" type="button" hidden>Очистить чат</button>
+        <button class="ib" type="button" data-max-target="chat" data-icon="expand" title="Развернуть" aria-label="Развернуть"></button>
+      </header>
+      <div class="logs">
+        <div class="log" id="log-chat" aria-live="polite"></div>
+        <div class="log" id="log-q" hidden aria-live="polite"></div>
+      </div>
+      <div class="emo" id="emo" hidden></div>
+      <form id="chatForm">
+        <button class="ib" id="emoBtn" type="button" data-icon="smile" title="Эмодзи" aria-label="Эмодзи"></button>
+        <button class="ib" id="attachBtn" type="button" data-icon="clip" title="Прикрепить файл (до 5 МБ)" aria-label="Прикрепить файл"></button>
+        <input type="file" id="fileInput" hidden>
+        <span class="vr"></span>
+        <input type="text" id="chatInput" maxlength="2000" placeholder="Ваше сообщение..." autocomplete="off" aria-label="Сообщение">
+        <button class="ib" type="submit" data-icon="send" title="Отправить" aria-label="Отправить"></button>
+      </form>
+    </section>
+
+    <section class="panel p-pres" id="pPres">
+      <header>
+        <span class="chip">Презентация</span>
+        <span class="muted" id="presWho"></span>
+        <span class="spacer"></span>
+        <button class="txtbtn" id="shareBtn" type="button" hidden>Показать экран</button>
+        <button class="ib" type="button" data-max-target="pres" data-icon="expand" title="Развернуть" aria-label="Развернуть"></button>
+      </header>
+      <div class="presBody">
+        <video id="presVideo" autoplay playsinline muted></video>
+        <p class="presEmpty" id="presEmpty">Организатор пока не показывает презентацию</p>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<div class="overlay" id="settings" hidden>
+  <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+    <div class="dh">
+      <h2 id="setTitle">Настройки</h2>
+      <button class="ib" id="setClose" type="button" data-icon="close" title="Закрыть" aria-label="Закрыть"></button>
+    </div>
+    <div class="dbody">
+      <nav class="dnav" aria-label="Разделы настроек">
+        <button class="nav on" type="button" data-sec="stream"><i class="ni" data-icon="radio"></i>Трансляция</button>
+        <button class="nav" type="button" data-sec="media"><i class="ni" data-icon="mic"></i>Камера и микрофон</button>
+        <button class="nav" type="button" data-sec="chat"><i class="ni" data-icon="chat"></i>Чат и вопросы</button>
+        <button class="nav" type="button" data-sec="me"><i class="ni" data-icon="usercirc"></i>Личные настройки</button>
+      </nav>
+      <div class="dsecs">
+
+        <section class="dsec" id="sec-stream">
+          <label for="volRange">Громкость участников <span id="volVal">100%</span>
+            <input type="range" id="volRange" min="0" max="100" step="1" value="100">
+          </label>
+          <p class="muted">Экран показывает только администратор. Остальные видят его в панели «Презентация».</p>
+        </section>
+
+        <section class="dsec" id="sec-media" hidden>
+          <div class="preview">
+            <video id="prevVideo" class="previewVideo" autoplay playsinline muted></video>
+            <p class="prevEmpty" id="prevEmpty" hidden>Камера недоступна</p>
+          </div>
+          <label for="selCam">Камера
+            <select id="selCam"></select>
+          </label>
+          <label for="selMic">Микрофон
+            <select id="selMic"></select>
+          </label>
+          <div class="row">
+            <span>Зеркалирование камеры</span>
+            <button class="switch" id="mirrorSw" type="button" role="switch" aria-checked="true" aria-label="Зеркалирование камеры"></button>
+          </div>
+          <div class="help">
+            <div>
+              <strong>Не работает видео и звук?</strong>
+              <p id="checkText">Нажмите «Проверка», чтобы посмотреть, видит ли браузер ваши устройства.</p>
+            </div>
+            <button class="btn small" id="checkBtn" type="button">Проверка</button>
+          </div>
+        </section>
+
+        <section class="dsec" id="sec-chat" hidden>
+          <div>
+            <div class="lab">Размер текста</div>
+            <div class="chips">
+              <button class="csz" type="button" data-px="13">13 px</button>
+              <button class="csz" type="button" data-px="14">14 px</button>
+              <button class="csz" type="button" data-px="15">15 px</button>
+              <button class="csz" type="button" data-px="16">16 px</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="dsec" id="sec-me" hidden>
+          <h3>Основное</h3>
+          <label for="setName">Имя и фамилия
+            <input type="text" id="setName" maxlength="30" autocomplete="nickname">
+          </label>
+          <h3>Аватар</h3>
+          <div class="avgrid" id="avGrid"></div>
+          <input type="file" id="avFile" accept="image/*" hidden>
+        </section>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal" role="alertdialog" aria-modal="true" aria-labelledby="modalText" hidden>
+  <div class="box">
+    <p id="modalText">Пароль неверный!!!</p>
+    <button class="btn" id="modalOk" type="button">OK</button>
+  </div>
+</div>
+
+<div id="toast" role="status" hidden></div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  const grid = $('#grid');
+  const ws = $('#ws');
+  const MAX_FILE = 5 * 1024 * 1024;
+
+  function load(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
+  function save(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
+
+  // ---------- icons ----------
+  const S = (inner) =>
+    '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+  const SLASH = '<line class="slash" x1="3" y1="3" x2="21" y2="21"/>';
+  const ICON = {
+    video: S('<path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>' + SLASH),
+    mic: S('<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>' + SLASH),
+    gear: S('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'),
+    expand: S('<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>'),
+    link: S('<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>'),
+    smile: S('<circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>'),
+    clip: S('<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>'),
+    send: S('<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>'),
+    trash: S('<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>'),
+    close: S('<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'),
+    check: S('<polyline points="20 6 9 17 4 12"/>'),
+    radio: S('<circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/>'),
+    chat: S('<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>'),
+    usercirc: S('<circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M6.17 18.5a7 7 0 0 1 11.66 0"/>'),
+    user: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="4.2"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7z"/></svg>'
+  };
+  document.querySelectorAll('[data-icon]').forEach((n) => { n.innerHTML = ICON[n.dataset.icon]; });
+
+  // ---------- avatars ----------
+  const GRAD = {
+    u:  ['#8b9099', '#555a63'],
+    g1: ['#1e3c8f', '#29a3d6'],
+    g2: ['#ff9a3c', '#e0507a'],
+    g3: ['#c2185b', '#7b1fa2'],
+    g4: ['#2fb57a', '#0b6b73'],
+    g5: ['#ff5a36', '#d6264a']
+  };
+  const CART = {
+    c1: { bg: '#3b7f8c', skin: '#8d5a3b', hair: '#1b1b1f', shirt: '#2d3a8c', style: 'afro' },
+    c2: { bg: '#5b7cfa', skin: '#8d5a3b', hair: '#1b1b1f', shirt: '#f2c14e', style: 'short' },
+    c3: { bg: '#ff8a7a', skin: '#f1c9a5', hair: '#3a2418', shirt: '#ffffff', style: 'bun' },
+    c4: { bg: '#e8486a', skin: '#c98d62', hair: '#1b1b1f', shirt: '#2c9c8a', style: 'long' },
+    c5: { bg: '#6c8cf0', skin: '#f1c9a5', hair: '#d9a441', shirt: '#e8486a', style: 'short' },
+    c6: { bg: '#8a7fb8', skin: '#e0ac80', hair: '#7a3b1d', shirt: '#2b2f3a', style: 'long' },
+    c7: { bg: '#3fae7a', skin: '#8d5a3b', hair: '#1b1b1f', shirt: '#f26b3a', style: 'bun' },
+    c8: { bg: '#f2a33a', skin: '#f1c9a5', hair: '#5b3a29', shirt: '#4c8dff', style: 'afro' }
+  };
+  const AV_ORDER = ['g1', 'g2', 'g3', 'g4', 'u', 'g5', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8'];
+
+  function cartoonSVG(c) {
+    const hairs = {
+      short: '<path d="M18 28c0-10 6-16 14-16s14 6 14 16c-4-6-9-8-14-8s-10 2-14 8z" fill="' + c.hair + '"/>',
+      long: '<path d="M16 34c-2-14 4-22 16-22s18 8 16 22c0 6-2 12-4 14V30H20v18c-2-2-4-8-4-14z" fill="' + c.hair + '"/>',
+      bun: '<circle cx="32" cy="10" r="6" fill="' + c.hair + '"/><path d="M18 28c0-9 6-14 14-14s14 5 14 14c-4-5-9-7-14-7s-10 2-14 7z" fill="' + c.hair + '"/>',
+      afro: '<circle cx="32" cy="24" r="17" fill="' + c.hair + '"/>'
+    };
+    const hair = hairs[c.style];
+    const behind = (c.style === 'afro' || c.style === 'long');
+    return '<svg class="full" viewBox="0 0 64 64" aria-hidden="true">' +
+      '<rect width="64" height="64" fill="' + c.bg + '"/>' +
+      '<path d="M8 64c0-12 10-18 24-18s24 6 24 18z" fill="' + c.shirt + '"/>' +
+      '<rect x="28" y="38" width="8" height="10" rx="3" fill="' + c.skin + '"/>' +
+      (behind ? hair : '') +
+      '<ellipse cx="32" cy="29" rx="12" ry="14" fill="' + c.skin + '"/>' +
+      (behind ? '' : hair) +
+      '<circle cx="27" cy="30" r="1.4" fill="#2b2118"/><circle cx="37" cy="30" r="1.4" fill="#2b2118"/>' +
+      '<path d="M28 36c2.5 2 5.5 2 8 0" stroke="#2b2118" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>';
+  }
+
+  // Аватар приходит от других участников, поэтому проверяем всё, что пришло.
+  function sanitizeAv(a) {
+    if (a && typeof a === 'object') {
+      if (a.k === 'img' && typeof a.src === 'string' && a.src.length < 80000 &&
+          /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(a.src)) return { k: 'img', src: a.src };
+      if (typeof a.k === 'string' && (GRAD[a.k] || CART[a.k])) return { k: a.k };
+    }
+    return { k: 'u' };
+  }
+
+  function paintAvatar(node, av) {
+    av = av || { k: 'u' };
+    node.style.background = '';
+    node.style.color = '';
+    node.textContent = '';
+    if (av.k === 'img') {
+      const im = document.createElement('img');
+      im.className = 'avimg'; im.alt = ''; im.src = av.src;
+      node.style.background = 'transparent';
+      node.append(im);
+    } else if (CART[av.k]) {
+      node.style.background = 'transparent';
+      node.innerHTML = cartoonSVG(CART[av.k]);
+    } else {
+      const g = GRAD[av.k] || GRAD.u;
+      node.style.background = 'linear-gradient(135deg, ' + g[0] + ', ' + g[1] + ')';
+      node.style.color = '#fff';
+      node.innerHTML = ICON.user;
+    }
+  }
+
+  function loadMyAv() {
+    try { return sanitizeAv(JSON.parse(load('vr-av', 'null'))); } catch (e) { return { k: 'u' }; }
+  }
+  let myAv = loadMyAv();
+
+  // ---------- state ----------
+  const peers = new Map();            // id -> { id, name, cam, mic, hand, av, role, staff, mine, conn, call, screenCall, stream, tile }
+  const state = {
+    mic: true, cam: false, hand: false,
+    mirror: load('vr-mirror', '1') !== '0',
+    vol: Math.min(100, Math.max(0, Number(load('vr-vol', '100')) || 0))
+  };
+  let chatSize = Number(load('vr-cs', '14'));
+  if ([13, 14, 15, 16].indexOf(chatSize) < 0) chatSize = 14;
+  let peer = null, local = null, myName = '', room = '', isHost = false;
+  let screenStream = null, presFrom = null;
+  const pendingScreens = new Map();
+  let tab = 'chat';
+  let isAdmin = false, isMod = false, chatLocked = false;
+  const locks = { mic: false, cam: false };      // запреты, которые поставил администратор (у меня)
+  const lockedNames = new Map();                 // у администратора: имя -> запреты, чтобы вернуть их после перезахода
+  const msgEls = new Map();            // id сообщения -> { row, ch }
+  const isStaff = () => isAdmin || isMod;
+  function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+  const canShare = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+  const REACTS = ['👍', '👏', '❤️', '😂', '😮', '🎉'];
+
+  // SHA-256 паролей (сами пароли в файле не хранятся)
+  const ADMIN_HASH = '60031bceca7685cd852f7217d947df40d063d438b8e4bc9cb82183f76e62674b';
+  const MOD_HASH = '45ef22ba127c4d3835e0b653dbacbcfb5ed4a50cef0e9e12f80b0c690a2f30b4';
+  const myHash = () => (isAdmin ? ADMIN_HASH : (isMod ? MOD_HASH : null));
+  async function sha256(s) {
+    const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+    return Array.from(new Uint8Array(b)).map((x) => x.toString(16).padStart(2, '0')).join('');
+  }
+  function showModal() { $('#modal').hidden = false; $('#modalOk').focus(); }
+  $('#modalOk').addEventListener('click', () => {
+    $('#modal').hidden = true;
+    $('#adminPw').focus();
+    $('#adminPw').select();
+  });
+
+  document.body.classList.toggle('no-mirror', !state.mirror);
+  document.documentElement.style.setProperty('--chat-size', chatSize + 'px');
+
+  // ---------- helpers ----------
+  function el(tag, cls) { const e = document.createElement(tag); if (cls) e.className = cls; return e; }
+  function fmtTime(ts) {
+    const d = new Date(ts), p = (n) => String(n).padStart(2, '0');
+    return p(d.getDate()) + '.' + p(d.getMonth() + 1) + '.' + String(d.getFullYear()).slice(2) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+  function fmtSize(n) {
+    return n >= 1048576 ? (n / 1048576).toFixed(1) + ' Mb' : Math.max(1, Math.round(n / 1024)) + ' Kb';
+  }
+  let toastTimer = 0;
+  function toast(text) {
+    const t = $('#toast');
+    t.textContent = text; t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.hidden = true; }, 2800);
+  }
+  function avOf(p) { return p.mine ? myAv : (p.av || { k: 'u' }); }
+  function avOfId(pid) {
+    if (pid === 'me') return myAv;
+    const p = peers.get(pid);
+    return p ? (p.av || { k: 'u' }) : { k: 'u' };
+  }
+  function repaintChatAvatars(pid) {
+    document.querySelectorAll('.cav').forEach((n) => { if (n.dataset.pid === pid) paintAvatar(n, avOfId(pid)); });
+  }
+
+  // ---------- lobby ----------
+  if (!(window.isSecureContext && navigator.mediaDevices)) $('#secureWarn').hidden = false;
+
+  const fromHash = decodeURIComponent(location.hash.slice(1));
+  if (fromHash) $('#roomName').value = fromHash;
+  $('#name').value = load('vr-name', '');
+
+  $('#joinForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('#joinBtn').disabled = true;
+    $('#lobbyErr').hidden = true;
+    try {
+      const pw = $('#adminPw').value;
+      if (pw) {
+        if (!(window.crypto && crypto.subtle)) throw 'проверка пароля работает только на https или localhost';
+        const h = await sha256(pw);
+        if (h === ADMIN_HASH) isAdmin = true;
+        else if (h === MOD_HASH) isMod = true;
+        else {
+          showModal();
+          $('#joinBtn').disabled = false;
+          return;
+        }
+      }
+      await join();
+    } catch (err) {
+      $('#lobbyErr').textContent = 'Не удалось подключиться: ' + (err && err.type ? err.type : err);
+      $('#lobbyErr').hidden = false;
+      $('#joinBtn').disabled = false;
+    }
+  });
+
+  function cleanRoom(s) { return s.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40); }
+
+  async function join() {
+    myName = $('#name').value.trim() || 'Гость';
+    save('vr-name', myName);
+    room = cleanRoom($('#roomName').value.trim()) || Math.random().toString(36).slice(2, 8);
+    location.hash = room;
+
+    local = await getMedia();
+    const v = local.getVideoTracks()[0];
+    if (v) v.enabled = false;                       // камера выключена, пока вы её не включите
+    if (!local.getAudioTracks().length) state.mic = false;
+
+    $('#lobby').hidden = true;
+    $('#app').hidden = false;
+    $('#roomTitle').textContent = 'Комната: ' + room;
+    if (isAdmin || isMod) {
+      $('#adminChip').textContent = isAdmin ? 'Администратор' : 'Модератор';
+      $('#adminChip').hidden = false;
+      $('#lockBtn').hidden = false;
+    }
+    if (isAdmin) {
+      $('#clearBtn').hidden = false;
+      $('#ctlWrap').hidden = false;                 // панель управления только у администратора
+      if (canShare) $('#shareBtn').hidden = false;  // показывать экран может только администратор
+    }
+
+    const me = { id: 'me', name: myName + ' (вы)', cam: false, mic: state.mic, hand: false, mine: true };
+    me.tile = addTile(me);
+    peers.set('me', me);
+    attachStream(me, local);
+    refreshTile(me);
+    updateCount();
+    syncButtons();
+
+    await connectPeer();
+    sys(isHost ? 'Вы создали комнату. Отправьте ссылку друзьям.' : 'Вы вошли в комнату.');
+  }
+
+  async function getMedia() {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      const tries = [
+        { audio: true, video: { width: { ideal: 640 }, height: { ideal: 480 } } },
+        { audio: true },
+        { video: true }
+      ];
+      for (const c of tries) {
+        try { return await navigator.mediaDevices.getUserMedia(c); } catch (e) {}
+      }
+    }
+    // без доступа к устройствам: тихий аудиопоток, чтобы можно было принимать чужие
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    return new Ctx().createMediaStreamDestination().stream;
+  }
+
+  // ---------- connection ----------
+  function connectPeer() {
+    return new Promise((resolve, reject) => {
+      const hostId = 'vroom-' + room + '-host';
+      let settled = false;
+      const done = (fn, v) => { if (!settled) { settled = true; fn(v); } };
+
+      const asHost = new Peer(hostId);
+      asHost.on('open', () => { peer = asHost; isHost = true; bind(); done(resolve); });
+      asHost.on('error', (err) => {
+        if (err.type === 'unavailable-id' && !settled) {
+          asHost.destroy();
+          const guest = new Peer();
+          guest.on('open', () => { peer = guest; bind(); reach(hostId); done(resolve); });
+          guest.on('error', (e) => done(reject, e));
+        } else if (!settled) {
+          done(reject, err);
+        } else {
+          toast('Ошибка соединения: ' + err.type);
+        }
+      });
+    });
+  }
+
+  function bind() {
+    peer.on('connection', (c) => setupConn(c));
+    peer.on('call', (call) => {
+      if (call.metadata && call.metadata.kind === 'screen') {
+        call.answer();                                  // только приём, без своего потока
+        call.on('stream', (s) => {
+          const sp = peers.get(call.peer);
+          if (sp && sp.role === 'admin') showPres(s, call.peer);
+          else if (!sp || !sp.named) pendingScreens.set(call.peer, s);   // роль пока неизвестна
+          // экран от не-администратора игнорируется
+        });
+        call.on('close', () => { pendingScreens.delete(call.peer); if (presFrom === call.peer) hidePres(); });
+        return;
+      }
+      call.answer(local);
+      setupCall(call);
+    });
+    peer.on('disconnected', () => { try { peer.reconnect(); } catch (e) {} });
+  }
+
+  function reach(id) {
+    setupConn(peer.connect(id, { reliable: true }));
+    setupCall(peer.call(id, local));
+  }
+
+  function ensure(id) {
+    let p = peers.get(id);
+    if (!p) {
+      p = { id, name: 'Участник', cam: false, mic: true, hand: false, av: { k: 'u' } };
+      p.tile = addTile(p);
+      peers.set(id, p);
+      refreshTile(p);
+      updateCount();
+    }
+    return p;
+  }
+
+  function helloPayload() {
+    return { t: 'hello', name: myName, cam: state.cam, mic: state.mic, hand: state.hand, ah: myHash(), av: myAv, lk: { mic: locks.mic, cam: locks.cam } };
+  }
+  function sendHello() { broadcast(helloPayload()); }
+
+  function setupConn(conn) {
+    const p = ensure(conn.peer);
+    p.conn = conn;
+    const hello = () => conn.send(helloPayload());
+    if (conn.open) hello(); else conn.on('open', hello);
+    conn.on('data', (d) => onData(p, conn, d));
+    conn.on('close', () => removePeer(p.id));
+    conn.on('error', () => {});
+  }
+
+  function setupCall(call) {
+    const p = ensure(call.peer);
+    p.call = call;
+    call.on('stream', (s) => { p.stream = s; attachStream(p, s); });
+    call.on('close', () => {});
+    call.on('error', () => {});
+  }
+
+  function onData(p, conn, d) {
+    if (!d || typeof d !== 'object') return;
+    if (d.t === 'hello') {
+      const first = !p.named;
+      p.named = true;
+      p.name = String(d.name || 'Гость').slice(0, 30);
+      p.cam = !!d.cam;
+      p.mic = d.mic !== false;
+      p.hand = !!d.hand;
+      p.av = sanitizeAv(d.av);
+      p.lk = { mic: !!(d.lk && d.lk.mic), cam: !!(d.lk && d.lk.cam) };
+      p.role = d.ah === ADMIN_HASH ? 'admin' : (d.ah === MOD_HASH ? 'mod' : '');
+      p.staff = !!p.role;
+      refreshTile(p);
+      repaintChatAvatars(p.id);
+      if (p.role === 'admin' && pendingScreens.has(p.id)) {
+        showPres(pendingScreens.get(p.id), p.id);
+        pendingScreens.delete(p.id);
+      } else if (p.role !== 'admin') {
+        pendingScreens.delete(p.id);
+      }
+      if (first) {
+        sys(p.name + ' вошёл(а)');
+        if (screenStream) callScreen(p);
+        if (isStaff() && chatLocked) sendCmd(p, 'chat', true);
+        if (isAdmin && p.role !== 'admin') {            // вернуть запреты тому, кто перезашёл под тем же именем
+          const kept = lockedNames.get((p.name || '').trim().toLowerCase());
+          if (kept) {
+            p.lk = { mic: !!kept.mic, cam: !!kept.cam };
+            ['mic', 'cam'].forEach((k) => { if (p.lk[k]) sendCmd(p, 'lock', true, { kind: k }); });
+            refreshTile(p);
+          }
+        }
+      }
+      if (isHost && !p.greeted) {
+        p.greeted = true;
+        conn.send({ t: 'peers', ids: [...peers.keys()].filter((i) => i !== p.id && i !== 'me') });
+      }
+    } else if (d.t === 'peers' && Array.isArray(d.ids)) {
+      d.ids.forEach((id) => {
+        if (typeof id === 'string' && id !== peer.id && !peers.has(id)) reach(id);
+      });
+    } else if (d.t === 'state') {
+      p.cam = !!d.cam;
+      p.mic = d.mic !== false;
+      refreshTile(p);
+    } else if (d.t === 'hand') {
+      p.hand = !!d.on;
+      refreshTile(p);
+      sys(p.name + (p.hand ? ' поднял(а) руку' : ' опустил(а) руку'));
+    } else if (d.t === 'react') {
+      if (REACTS.indexOf(d.e) >= 0) showReaction(p.id, d.e);
+    } else if (d.t === 'chat') {
+      if (chatLocked && !p.staff) return;
+      const ch = d.ch === 'q' ? 'q' : 'chat';
+      addText(ch, p.name, String(d.text || '').slice(0, 2000), false, String(d.id || '').slice(0, 40), p.id);
+      if (ch !== tab) markUnread(ch);
+    } else if (d.t === 'file' && d.data) {
+      if (chatLocked && !p.staff) return;
+      const ch = d.ch === 'q' ? 'q' : 'chat';
+      const size = Number(d.size) || (d.data.byteLength || 0);
+      if (size > MAX_FILE) return;
+      const mime = String(d.mime || 'application/octet-stream');
+      const url = URL.createObjectURL(new Blob([d.data], { type: mime }));
+      addFile(ch, p.name, { name: String(d.name || 'file').slice(0, 120), size, mime }, url, false, String(d.id || '').slice(0, 40), p.id);
+      if (ch !== tab) markUnread(ch);
+    } else if (d.t === 'admin') {
+      const fromAdmin = d.ah === ADMIN_HASH, fromMod = d.ah === MOD_HASH;
+      if (!fromAdmin && !fromMod) return;
+      if (d.cmd === 'chat') { setChatLock(!!d.value, fromAdmin ? 'Администратор' : 'Модератор'); return; }
+      if (!fromAdmin) return;                       // всё остальное только от администратора
+      if (d.cmd === 'del') { removeMsg(String(d.id || '')); return; }
+      if (d.cmd === 'clear') { clearLog(d.ch === 'q' ? 'q' : 'chat'); return; }
+      if (isAdmin) return;                          // администратором управлять нельзя
+      if (d.cmd === 'lock' && (d.kind === 'mic' || d.kind === 'cam')) applyLock(d.kind, !!d.value);
+    } else if (d.t === 'present') {
+      if (d.on === false && presFrom === p.id) hidePres();
+    }
+  }
+
+  function broadcast(m) {
+    for (const p of peers.values()) {
+      if (p.conn && p.conn.open) { try { p.conn.send(m); } catch (e) {} }
+    }
+  }
+
+  function removePeer(id) {
+    const p = peers.get(id);
+    if (!p || p.mine) return;
+    if (p.named) sys(p.name + ' вышел(а)');
+    if (presFrom === id) hidePres();
+    pendingScreens.delete(id);
+    try { p.call && p.call.close(); } catch (e) {}
+    try { p.screenCall && p.screenCall.close(); } catch (e) {}
+    try { p.conn && p.conn.close(); } catch (e) {}
+    unwatch(id);
+    p.tile.el.remove();
+    peers.delete(id);
+    updateCount();
+  }
+
+  // ---------- tiles ----------
+  function addTile(p) {
+    const box = el('div', 'tile' + (p.mine ? ' mine' : ''));
+    const video = document.createElement('video');
+    video.autoplay = true; video.playsInline = true;
+    if (p.mine) video.muted = true;
+    const avatar = el('div', 'avatar'); avatar.innerHTML = ICON.user;
+    const badge = el('div', 'badge'); badge.innerHTML = ICON.mic;
+    const hand = el('div', 'hand'); hand.textContent = '✋'; hand.hidden = true;
+    const lbl = el('div', 'lbl');
+    box.append(video, avatar, badge, hand, lbl);
+    let bm = null, bc = null;
+    if (isAdmin && !p.mine) {                       // кнопки администратора на чужих плитках
+      const ctl = el('div', 'tctl');
+      bm = document.createElement('button');
+      bm.type = 'button'; bm.className = 'tbtn'; bm.innerHTML = ICON.mic;
+      bm.title = 'Выключить микрофон участника и запретить включать (ещё раз: вернуть)';
+      bm.addEventListener('click', () => toggleLock(p, 'mic'));
+      bc = document.createElement('button');
+      bc.type = 'button'; bc.className = 'tbtn'; bc.innerHTML = ICON.video;
+      bc.title = 'Выключить камеру участника и запретить включать (ещё раз: вернуть)';
+      bc.addEventListener('click', () => toggleLock(p, 'cam'));
+      ctl.append(bm, bc);
+      box.append(ctl);
+    }
+    grid.append(box);
+    return { el: box, video, avatar, badge, hand, lbl, bm, bc, avRef: null };
+  }
+
+  function attachStream(p, s) {
+    p.tile.video.srcObject = s;
+    if (!p.mine) p.tile.video.volume = state.vol / 100;
+    const pr = p.tile.video.play();
+    if (pr && pr.catch) pr.catch(() => {});
+    watch(p, s);
+  }
+
+  function roleOf(p) { return p.mine ? (isAdmin ? 'admin' : (isMod ? 'mod' : '')) : (p.role || ''); }
+
+  function refreshTile(p) {
+    const t = p.tile;
+    const role = roleOf(p);
+    t.lbl.textContent = (p.name || '') + (role === 'admin' ? ' · админ' : (role === 'mod' ? ' · модератор' : ''));
+    if (t.bm) { t.bm.classList.toggle('off', !!(p.lk && p.lk.mic)); t.bc.classList.toggle('off', !!(p.lk && p.lk.cam)); }
+    t.badge.hidden = p.mic !== false;
+    t.hand.hidden = !p.hand;
+    const showVideo = p.mine ? state.cam : p.cam;
+    t.video.classList.toggle('off', !showVideo);
+    t.avatar.classList.toggle('hide', !!showVideo);
+    const av = avOf(p);
+    if (t.avRef !== av) { t.avRef = av; paintAvatar(t.avatar, av); }
+    if (!$('#partsPop').hidden) renderParts();
+    if (!$('#ctlPop').hidden) renderCtl();
+  }
+
+  function updateCount() {
+    $('#videoChip').textContent = 'Видео · ' + peers.size;
+    $('#partsCount').textContent = peers.size;
+    if (!$('#partsPop').hidden) renderParts();
+    if (!$('#ctlPop').hidden) renderCtl();
+  }
+
+  function renderParts() {
+    const pop = $('#partsPop');
+    pop.textContent = '';
+    peers.forEach((p) => {
+      const row = el('div', 'prow');
+      const av = el('div', 'cav'); paintAvatar(av, avOf(p));
+      const nm = el('div', 'pn');
+      const role = roleOf(p);
+      nm.textContent = p.name + (role === 'admin' ? ' · админ' : (role === 'mod' ? ' · модератор' : ''));
+      row.append(av, nm);
+      if (p.hand) { const h = el('span', 'pm'); h.textContent = '✋'; row.append(h); }
+      if (p.mic === false) { const m = el('span', 'pm'); m.textContent = 'без звука'; row.append(m); }
+      pop.append(row);
+    });
+  }
+
+  // ---------- панель управления (только администратор) ----------
+  function ctlBtn(kind, p) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    const locked = !!(p.lk && p.lk[kind]);
+    const on = kind === 'mic' ? p.mic !== false : !!p.cam;
+    b.className = 'cbtn' + (locked ? ' locked' : (on ? '' : ' idle'));
+    b.innerHTML = kind === 'mic' ? ICON.mic : ICON.video;
+    const what = kind === 'mic' ? 'микрофон' : 'камеру';
+    b.title = locked ? 'Вернуть участнику ' + what : 'Выключить ' + what + ' и запретить включать';
+    b.setAttribute('aria-label', b.title);
+    b.setAttribute('aria-pressed', locked ? 'true' : 'false');
+    b.addEventListener('click', () => toggleLock(p, kind));
+    return b;
+  }
+
+  function renderCtl() {
+    const pop = $('#ctlPop');
+    pop.textContent = '';
+    const list = [...peers.values()].filter((p) => !p.mine);
+    const note = el('p', 'ctlnote');
+    note.textContent = list.length
+      ? 'Красная иконка: участнику запрещено включать устройство. Нажмите ещё раз, чтобы вернуть.'
+      : 'В комнате пока никого нет.';
+    pop.append(note);
+    list.forEach((p) => {
+      const row = el('div', 'prow');
+      const av = el('div', 'cav'); paintAvatar(av, avOf(p));
+      const nm = el('div', 'pn'); nm.textContent = p.name;
+      row.append(av, nm);
+      if (p.role === 'admin') {
+        const m = el('span', 'pm'); m.textContent = 'администратор'; row.append(m);
+      } else {
+        const bx = el('div', 'cbtns');
+        bx.append(ctlBtn('cam', p), ctlBtn('mic', p));
+        row.append(bx);
+      }
+      pop.append(row);
+    });
+  }
+
+  function toggleLock(p, kind) {
+    if (!isAdmin || p.role === 'admin') return;
+    p.lk = p.lk || { mic: false, cam: false };
+    p.lk[kind] = !p.lk[kind];
+    const key = (p.name || '').trim().toLowerCase();
+    if (key) {
+      if (p.lk.mic || p.lk.cam) lockedNames.set(key, { mic: p.lk.mic, cam: p.lk.cam });
+      else lockedNames.delete(key);
+    }
+    sendCmd(p, 'lock', p.lk[kind], { kind });
+    refreshTile(p);
+    if (!$('#ctlPop').hidden) renderCtl();
+  }
+
+  // у участника: администратор запретил или вернул устройство
+  function applyLock(kind, on) {
+    locks[kind] = on;
+    const what = kind === 'mic' ? 'микрофон' : 'камеру';
+    if (on) {
+      const t = kind === 'mic' ? local.getAudioTracks()[0] : local.getVideoTracks()[0];
+      if (t) t.enabled = false;
+      state[kind] = false;
+      pushState();
+    } else {
+      syncButtons();
+    }
+    const msg = on ? 'Администратор выключил ' + what + ' и запретил включать'
+                   : 'Администратор вернул вам ' + what + ', теперь можно включить';
+    sys(msg); toast(msg);
+  }
+
+  // ---------- who is speaking ----------
+  let actx = null;
+  const analysers = new Map();
+
+  function watch(p, stream) {
+    try {
+      if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume().catch(() => {});
+      unwatch(p.id);
+      if (!stream.getAudioTracks().length) return;
+      const src = actx.createMediaStreamSource(stream);
+      const an = actx.createAnalyser();
+      an.fftSize = 512;
+      src.connect(an);                                // к колонкам не подключаем
+      analysers.set(p.id, { an, src, buf: new Uint8Array(an.fftSize), until: 0 });
+    } catch (e) {}
+  }
+  function unwatch(id) {
+    const a = analysers.get(id);
+    if (a) { try { a.src.disconnect(); } catch (e) {} analysers.delete(id); }
+  }
+  setInterval(() => {
+    const now = performance.now();
+    analysers.forEach((a, id) => {
+      a.an.getByteTimeDomainData(a.buf);
+      let max = 0;
+      for (let i = 0; i < a.buf.length; i++) { const v = Math.abs(a.buf[i] - 128); if (v > max) max = v; }
+      if (max > 6) a.until = now + 700;
+      const p = peers.get(id);
+      if (p) p.tile.el.classList.toggle('speaking', now < a.until && p.mic !== false);
+    });
+  }, 150);
+
+  // ---------- controls ----------
+  function syncButtons() {
+    const a = local.getAudioTracks()[0], v = local.getVideoTracks()[0];
+    const mic = $('#micBtn'), cam = $('#camBtn');
+    mic.disabled = !a || locks.mic; cam.disabled = !v || locks.cam;
+    mic.classList.toggle('off', !state.mic);
+    cam.classList.toggle('off', !state.cam);
+    mic.title = a ? (state.mic ? 'Выключить микрофон' : 'Включить микрофон') : 'Микрофон недоступен: нет устройства или разрешения';
+    cam.title = v ? (state.cam ? 'Выключить камеру' : 'Включить камеру') : 'Камера недоступна: нет устройства или разрешения';
+    if (locks.mic) mic.title = 'Микрофон выключен администратором';
+    if (locks.cam) cam.title = 'Камера выключена администратором';
+  }
+
+  function pushState() {
+    const me = peers.get('me');
+    if (me) { me.mic = state.mic; me.cam = state.cam; refreshTile(me); }
+    syncButtons();
+    broadcast({ t: 'state', cam: state.cam, mic: state.mic });
+  }
+
+  $('#micBtn').addEventListener('click', () => {
+    const a = local.getAudioTracks()[0];
+    if (!a) return;
+    if (locks.mic) { toast('Микрофон выключен администратором'); return; }
+    state.mic = !state.mic;
+    a.enabled = state.mic;
+    pushState();
+  });
+
+  $('#camBtn').addEventListener('click', () => {
+    const v = local.getVideoTracks()[0];
+    if (!v) return;
+    if (locks.cam) { toast('Камера выключена администратором'); return; }
+    state.cam = !state.cam;
+    v.enabled = state.cam;
+    pushState();
+  });
+
+  $('#linkBtn').addEventListener('click', async () => {
+    const url = location.href.split('#')[0] + '#' + room;
+    try { await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); }
+    catch (e) { toast(url); }
+  });
+
+  $('#leaveBtn').addEventListener('click', () => {
+    try { peer && peer.destroy(); } catch (e) {}
+    try { local && local.getTracks().forEach((t) => t.stop()); } catch (e) {}
+    try { screenStream && screenStream.getTracks().forEach((t) => t.stop()); } catch (e) {}
+    location.hash = '';
+    location.reload();
+  });
+  window.addEventListener('beforeunload', () => { try { peer && peer.destroy(); } catch (e) {} });
+
+  document.querySelectorAll('[data-max-target]').forEach((b) => {
+    b.addEventListener('click', () => {
+      const k = b.dataset.maxTarget;
+      ws.dataset.max = ws.dataset.max === k ? '' : k;
+    });
+  });
+
+  // ---------- top bar: hand, reactions, participants ----------
+  $('#handBtn').addEventListener('click', () => {
+    state.hand = !state.hand;
+    const me = peers.get('me');
+    if (me) { me.hand = state.hand; refreshTile(me); }
+    $('#handBtn').classList.toggle('on', state.hand);
+    $('#handBtn').title = state.hand ? 'Опустить руку' : 'Поднять руку';
+    $('#handBtn').setAttribute('aria-label', $('#handBtn').title);
+    broadcast({ t: 'hand', on: state.hand });
+    sys(state.hand ? 'Вы подняли руку' : 'Вы опустили руку');
+  });
+
+  REACTS.forEach((e) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'rbtn'; b.textContent = e;
+    b.addEventListener('click', () => {
+      if (Date.now() - lastReact < 400) return;
+      lastReact = Date.now();
+      broadcast({ t: 'react', e });
+      showReaction('me', e);
+      $('#reactPop').hidden = true;
+    });
+    $('#reactPop').append(b);
+  });
+  let lastReact = 0;
+  $('#reactBtn').addEventListener('click', () => { $('#reactPop').hidden = !$('#reactPop').hidden; });
+
+  function flyEmoji(host, e) {
+    if (host.querySelectorAll('.fly').length > 6) return;
+    const s = el('span', 'fly');
+    s.textContent = e;
+    s.style.left = (30 + Math.random() * 40) + '%';
+    host.append(s);
+    setTimeout(() => s.remove(), 2400);
+  }
+
+  function showReaction(pid, e) {
+    const p = peers.get(pid);
+    if (p) flyEmoji(p.tile.el, e);                                   // над плиткой участника
+    if ($('#pPres').classList.contains('live')) flyEmoji($('.presBody'), e);   // и над презентацией
+  }
+
+  $('#partsBtn').addEventListener('click', () => {
+    const pop = $('#partsPop');
+    pop.hidden = !pop.hidden;
+    if (!pop.hidden) renderParts();
+  });
+
+  $('#ctlBtn').addEventListener('click', () => {
+    const pop = $('#ctlPop');
+    pop.hidden = !pop.hidden;
+    if (!pop.hidden) renderCtl();
+  });
+
+  // composedPath фиксируется в момент клика, поэтому окно не закрывается, когда кнопка внутри него перерисована
+  document.addEventListener('click', (e) => {
+    const path = e.composedPath();
+    [['#reactPop', '#reactBtn'], ['#partsPop', '#partsBtn'], ['#ctlPop', '#ctlBtn'], ['#emo', '#emoBtn']].forEach((pair) => {
+      const pe = $(pair[0]);
+      if (!pe.hidden && path.indexOf(pe) < 0 && path.indexOf($(pair[1])) < 0) pe.hidden = true;
+    });
+  });
+
+  // ---------- settings dialog ----------
+  let setSec = 'stream', prevStream = null;
+
+  $('#settingsBtn').addEventListener('click', () => openSettings('stream'));
+  $('#setBtn').addEventListener('click', () => openSettings('media'));
+  $('#setClose').addEventListener('click', closeSettings);
+  $('#settings').addEventListener('click', (e) => { if (e.target === $('#settings')) closeSettings(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !$('#settings').hidden) closeSettings();
+  });
+  document.querySelectorAll('.nav').forEach((b) => b.addEventListener('click', () => showSec(b.dataset.sec)));
+
+  function openSettings(sec) {
+    $('#settings').hidden = false;
+    $('#setName').value = myName;
+    $('#volRange').value = state.vol;
+    $('#volVal').textContent = state.vol + '%';
+    syncChips();
+    syncMirror();
+    buildAvGrid();
+    showSec(sec || setSec);
+    $('#setClose').focus();
+  }
+  function closeSettings() { $('#settings').hidden = true; stopPreview(); }
+
+  function showSec(sec) {
+    setSec = sec;
+    document.querySelectorAll('.nav').forEach((b) => b.classList.toggle('on', b.dataset.sec === sec));
+    document.querySelectorAll('.dsec').forEach((s) => { s.hidden = s.id !== 'sec-' + sec; });
+    if (sec === 'media') { startPreview(); fillDevices(); } else stopPreview();
+  }
+
+  // Трансляция
+  $('#volRange').addEventListener('input', (e) => {
+    state.vol = Number(e.target.value);
+    $('#volVal').textContent = state.vol + '%';
+    save('vr-vol', state.vol);
+    peers.forEach((p) => { if (!p.mine) p.tile.video.volume = state.vol / 100; });
+  });
+
+  // Камера и микрофон
+  function startPreview() {
+    stopPreview();
+    const v = local && local.getVideoTracks()[0];
+    const vid = $('#prevVideo');
+    if (!v) { vid.hidden = true; $('#prevEmpty').hidden = false; return; }
+    const c = v.clone();
+    c.enabled = true;                                // предпросмотр виден, даже если камера выключена для других
+    prevStream = new MediaStream([c]);
+    vid.srcObject = prevStream;
+    vid.hidden = false;
+    $('#prevEmpty').hidden = true;
+    const pr = vid.play();
+    if (pr && pr.catch) pr.catch(() => {});
+  }
+  function stopPreview() {
+    if (prevStream) { prevStream.getTracks().forEach((t) => t.stop()); prevStream = null; }
+    $('#prevVideo').srcObject = null;
+  }
+
+  async function fillDevices() {
+    let devs = [];
+    try { devs = await navigator.mediaDevices.enumerateDevices(); } catch (e) {}
+    fillSelect('#selMic', devs.filter((d) => d.kind === 'audioinput'), local.getAudioTracks()[0]);
+    fillSelect('#selCam', devs.filter((d) => d.kind === 'videoinput'), local.getVideoTracks()[0]);
+  }
+  function fillSelect(sel, list, track) {
+    const s = $(sel);
+    s.innerHTML = '';
+    const cur = track && track.getSettings ? track.getSettings().deviceId : '';
+    list.forEach((d, i) => {
+      const o = document.createElement('option');
+      o.value = d.deviceId;
+      o.textContent = d.label || ('Устройство ' + (i + 1));
+      if (d.deviceId === cur) o.selected = true;
+      s.append(o);
+    });
+    s.disabled = !track || !list.length;
+  }
+  $('#selMic').addEventListener('change', (e) => switchDevice('audio', e.target.value));
+  $('#selCam').addEventListener('change', (e) => switchDevice('video', e.target.value));
+
+  async function switchDevice(kind, deviceId) {
+    try {
+      const c = kind === 'audio' ? { audio: { deviceId: { exact: deviceId } } } : { video: { deviceId: { exact: deviceId } } };
+      const s = await navigator.mediaDevices.getUserMedia(c);
+      const nt = s.getTracks()[0];
+      const old = kind === 'audio' ? local.getAudioTracks()[0] : local.getVideoTracks()[0];
+      nt.enabled = kind === 'audio' ? state.mic : state.cam;
+      for (const p of peers.values()) {
+        const pc = p.call && p.call.peerConnection;
+        if (!pc) continue;
+        const sender = pc.getSenders().find((x) => x.track && x.track.kind === kind);
+        if (sender) sender.replaceTrack(nt).catch(() => {});
+      }
+      if (old) { local.removeTrack(old); old.stop(); }
+      local.addTrack(nt);
+      const me = peers.get('me');
+      me.tile.video.srcObject = local;
+      me.tile.video.play().catch(() => {});
+      if (kind === 'audio') watch(me, local);
+      syncButtons();
+      if (!$('#settings').hidden && setSec === 'media') startPreview();
+    } catch (e) {
+      toast('Не удалось переключить устройство');
+    }
+  }
+
+  function syncMirror() {
+    $('#mirrorSw').setAttribute('aria-checked', state.mirror ? 'true' : 'false');
+    document.body.classList.toggle('no-mirror', !state.mirror);
+  }
+  $('#mirrorSw').addEventListener('click', () => {
+    state.mirror = !state.mirror;
+    save('vr-mirror', state.mirror ? '1' : '0');
+    syncMirror();
+  });
+
+  $('#checkBtn').addEventListener('click', async () => {
+    const out = [];
+    out.push(window.isSecureContext ? 'Соединение защищённое' : 'Нужен https или localhost, иначе браузер не даст доступ к устройствам');
+    let devs = [];
+    try { devs = await navigator.mediaDevices.enumerateDevices(); } catch (e) {}
+    out.push('камер: ' + devs.filter((d) => d.kind === 'videoinput').length + ', микрофонов: ' + devs.filter((d) => d.kind === 'audioinput').length);
+    const v = local.getVideoTracks()[0], a = local.getAudioTracks()[0];
+    out.push(v && v.readyState === 'live' ? 'камера работает' : 'камера не работает: разрешите доступ в настройках браузера и зайдите заново');
+    out.push(a && a.readyState === 'live' ? 'микрофон работает' : 'микрофон не работает: разрешите доступ в настройках браузера и зайдите заново');
+    $('#checkText').textContent = out.join('. ') + '.';
+  });
+
+  // Чат и вопросы
+  function syncChips() {
+    document.querySelectorAll('.csz').forEach((b) => b.classList.toggle('on', Number(b.dataset.px) === chatSize));
+  }
+  document.querySelectorAll('.csz').forEach((b) => b.addEventListener('click', () => {
+    chatSize = Number(b.dataset.px);
+    save('vr-cs', chatSize);
+    document.documentElement.style.setProperty('--chat-size', chatSize + 'px');
+    syncChips();
+  }));
+
+  // Личные настройки
+  $('#setName').addEventListener('change', (e) => {
+    const v = e.target.value.trim().slice(0, 30);
+    if (!v) { e.target.value = myName; return; }
+    myName = v;
+    save('vr-name', v);
+    const me = peers.get('me');
+    if (me) { me.name = myName + ' (вы)'; refreshTile(me); }
+    sendHello();
+  });
+
+  function sameAv(a, b) { return a.k === b.k && (a.k !== 'img' || a.src === b.src); }
+
+  function buildAvGrid() {
+    const g = $('#avGrid');
+    g.textContent = '';
+    const up = document.createElement('button');
+    up.type = 'button'; up.className = 'avcell up'; up.textContent = 'Свое фото';
+    up.addEventListener('click', () => $('#avFile').click());
+    g.append(up);
+    const list = [];
+    if (myAv.k === 'img') list.push({ k: 'img', src: myAv.src });
+    AV_ORDER.forEach((k) => list.push({ k }));
+    list.forEach((av) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'avcell' + (sameAv(av, myAv) ? ' sel' : '');
+      b.setAttribute('aria-label', 'Выбрать аватар');
+      const c = el('div', 'avc'); paintAvatar(c, av);
+      const t = el('span', 'tick'); t.innerHTML = ICON.check;
+      b.append(c, t);
+      b.addEventListener('click', () => setAvatar(av));
+      g.append(b);
+    });
+  }
+
+  function setAvatar(av) {
+    myAv = av;
+    save('vr-av', JSON.stringify(av));
+    const me = peers.get('me');
+    if (me) refreshTile(me);
+    repaintChatAvatars('me');
+    buildAvGrid();
+    sendHello();
+  }
+
+  $('#avFile').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    e.target.value = '';
+    if (!f || f.type.indexOf('image/') !== 0) return;
+    const url = URL.createObjectURL(f);
+    const im = new Image();
+    im.onload = () => {
+      const s = Math.min(im.width, im.height);
+      const c = document.createElement('canvas');
+      c.width = c.height = 128;
+      c.getContext('2d').drawImage(im, (im.width - s) / 2, (im.height - s) / 2, s, s, 0, 0, 128, 128);
+      URL.revokeObjectURL(url);
+      setAvatar({ k: 'img', src: c.toDataURL('image/jpeg', 0.85) });
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); toast('Не удалось открыть изображение'); };
+    im.src = url;
+  });
+
+  // ---------- screen sharing (только администратор) ----------
+  $('#shareBtn').addEventListener('click', () => { screenStream ? stopShare() : startShare(); });
+
+  async function startShare() {
+    if (!isAdmin) return;
+    try {
+      screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+    } catch (e) { screenStream = null; return; }
+    screenStream.getVideoTracks()[0].addEventListener('ended', stopShare);
+    showPres(screenStream, 'me');
+    for (const p of peers.values()) if (!p.mine) callScreen(p);
+    broadcast({ t: 'present', on: true });
+    $('#shareBtn').textContent = 'Остановить показ';
+  }
+
+  function callScreen(p) {
+    if (!screenStream || p.screenCall || !peer) return;
+    try { p.screenCall = peer.call(p.id, screenStream, { metadata: { kind: 'screen' } }); } catch (e) {}
+  }
+
+  function stopShare() {
+    if (!screenStream) return;
+    screenStream.getTracks().forEach((t) => t.stop());
+    screenStream = null;
+    for (const p of peers.values()) {
+      if (p.screenCall) { try { p.screenCall.close(); } catch (e) {} p.screenCall = null; }
+    }
+    if (presFrom === 'me') hidePres();
+    broadcast({ t: 'present', on: false });
+    $('#shareBtn').textContent = 'Показать экран';
+  }
+
+  function showPres(stream, fromId) {
+    presFrom = fromId;
+    const who = fromId === 'me' ? 'Вы' : (peers.get(fromId) ? peers.get(fromId).name : 'Организатор');
+    $('#presWho').textContent = 'Показывает: ' + who;
+    const v = $('#presVideo');
+    v.srcObject = stream;
+    const pr = v.play();
+    if (pr && pr.catch) pr.catch(() => {});
+    $('#pPres').classList.add('live');
+    ws.classList.add('has-pres');
+  }
+
+  function hidePres() {
+    presFrom = null;
+    $('#presVideo').srcObject = null;
+    $('#presWho').textContent = '';
+    $('#pPres').classList.remove('live');
+    ws.classList.remove('has-pres');
+    if (ws.dataset.max === 'pres') ws.dataset.max = '';
+  }
+
+  // ---------- chat ----------
+  document.querySelectorAll('.tab').forEach((b) => {
+    b.addEventListener('click', () => {
+      tab = b.dataset.tab;
+      document.querySelectorAll('.tab').forEach((x) => x.classList.toggle('on', x === b));
+      $('#log-chat').hidden = tab !== 'chat';
+      $('#log-q').hidden = tab !== 'q';
+      b.querySelector('.dot').hidden = true;
+      updatePlaceholder();
+      scrollLog(tab);
+    });
+  });
+
+  function sendCmd(p, cmd, value, extra) {
+    if (p.conn && p.conn.open) {
+      try { p.conn.send(Object.assign({ t: 'admin', cmd, value, ah: myHash() }, extra || {})); } catch (e) {}
+    }
+  }
+
+  function updatePlaceholder() {
+    const blocked = chatLocked && !isStaff();
+    $('#chatInput').placeholder = blocked ? 'Чат закрыт администратором'
+      : (tab === 'q' ? 'Ваш вопрос...' : 'Ваше сообщение...');
+  }
+
+  function setChatLock(v, who) {
+    chatLocked = v;
+    const blocked = v && !isStaff();
+    $('#chatInput').disabled = blocked;
+    $('#emoBtn').disabled = blocked;
+    $('#attachBtn').disabled = blocked;
+    $('#chatForm button[type=submit]').disabled = blocked;
+    if (blocked) $('#emo').hidden = true;
+    $('#lockBtn').textContent = v ? 'Открыть чат' : 'Закрыть чат';
+    updatePlaceholder();
+    sys((who || 'Администратор') + (v ? ' закрыл чат' : ' открыл чат'));
+  }
+
+  $('#lockBtn').addEventListener('click', () => {
+    const v = !chatLocked;
+    setChatLock(v, isAdmin ? 'Администратор' : 'Модератор');
+    for (const p of peers.values()) if (!p.mine) sendCmd(p, 'chat', v);
+  });
+
+  // удаление и очистка (только администратор)
+  function removeMsg(id) {
+    const m = msgEls.get(id);
+    if (m) { m.row.remove(); msgEls.delete(id); }
+  }
+  function deleteMsg(id) {
+    removeMsg(id);
+    for (const p of peers.values()) if (!p.mine) sendCmd(p, 'del', null, { id });
+  }
+  function clearLog(ch) {
+    $('#log-' + ch).textContent = '';
+    msgEls.forEach((v, k) => { if (v.ch === ch) msgEls.delete(k); });
+    sys(ch === 'q' ? 'Администратор очистил вопросы' : 'Администратор очистил чат', ch);
+  }
+  $('#clearBtn').addEventListener('click', () => {
+    const ch = tab;
+    clearLog(ch);
+    for (const p of peers.values()) if (!p.mine) sendCmd(p, 'clear', null, { ch });
+  });
+
+  function markUnread(ch) {
+    const b = document.querySelector('.tab[data-tab="' + ch + '"] .dot');
+    if (b) b.hidden = false;
+  }
+  function scrollLog(ch) { const l = $('#log-' + ch); l.scrollTop = l.scrollHeight; }
+
+  function msgShell(ch, who, mine, id, pid) {
+    const row = el('div', 'msg');
+    if (id) {
+      msgEls.set(id, { row, ch });
+      if (isAdmin) {
+        const del = document.createElement('button');
+        del.type = 'button'; del.className = 'mdel'; del.innerHTML = ICON.trash;
+        del.title = 'Удалить сообщение'; del.setAttribute('aria-label', 'Удалить сообщение');
+        del.addEventListener('click', () => deleteMsg(id));
+        row.append(del);
+      }
+    }
+    const av = el('div', 'cav');
+    av.dataset.pid = pid || '';
+    paintAvatar(av, pid ? avOfId(pid) : null);
+    const body = el('div');
+    const head = el('div', 'mh');
+    const n = el('span', 'n'); n.textContent = who;
+    const t = el('span', 't'); t.textContent = fmtTime(Date.now());
+    head.append(n, t);
+    body.append(head);
+    row.append(av, body);
+    $('#log-' + ch).append(row);
+    return body;
+  }
+
+  function addText(ch, who, text, mine, id, pid) {
+    const body = msgShell(ch, who, mine, id, pid);
+    const t = el('div', 'mt'); t.textContent = text;
+    body.append(t);
+    scrollLog(ch);
+  }
+
+  function addFile(ch, who, meta, url, mine, id, pid) {
+    const body = msgShell(ch, who, mine, id, pid);
+    const f = el('div', 'file');
+    let th;
+    if (meta.mime.indexOf('image/') === 0) {
+      th = document.createElement('img');
+      th.className = 'th';
+      th.alt = '';
+      th.src = url;
+    } else {
+      th = el('div', 'th');
+      th.textContent = (meta.name.split('.').pop() || 'file').slice(0, 4);
+    }
+    const info = el('div');
+    const a = document.createElement('a');
+    a.href = url; a.download = meta.name; a.textContent = meta.name;
+    const sz = el('div', 'fs'); sz.textContent = fmtSize(meta.size);
+    info.append(a, sz);
+    f.append(th, info);
+    body.append(f);
+    scrollLog(ch);
+  }
+
+  function sys(text, ch) {
+    const m = el('div', 'sysmsg');
+    m.textContent = text;
+    $('#log-' + (ch || 'chat')).append(m);
+    scrollLog(ch || 'chat');
+  }
+
+  $('#chatForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = $('#chatInput');
+    if (chatLocked && !isStaff()) return;
+    const text = input.value.trim();
+    if (!text) return;
+    const id = newId();
+    broadcast({ t: 'chat', ch: tab, text, id });
+    addText(tab, 'Вы', text, true, id, 'me');
+    input.value = '';
+  });
+
+  async function sendFile(file) {
+    if (chatLocked && !isStaff()) { toast('Чат закрыт администратором'); return; }
+    if (file.size > MAX_FILE) { toast('Файл «' + file.name + '» больше 5 МБ'); return; }
+    const buf = await file.arrayBuffer();
+    const meta = { name: file.name || 'file', size: file.size, mime: file.type || 'application/octet-stream' };
+    const id = newId();
+    broadcast({ t: 'file', ch: tab, name: meta.name, size: meta.size, mime: meta.mime, data: buf, id });
+    addFile(tab, 'Вы', meta, URL.createObjectURL(new Blob([buf], { type: meta.mime })), true, id, 'me');
+  }
+
+  $('#attachBtn').addEventListener('click', () => $('#fileInput').click());
+  $('#fileInput').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    e.target.value = '';
+    if (f) sendFile(f);
+  });
+  $('#chatInput').addEventListener('paste', (e) => {
+    const files = e.clipboardData && e.clipboardData.files;
+    if (files && files.length) { e.preventDefault(); sendFile(files[0]); }
+  });
+
+  const EMOJI = ['😀','😂','😍','👍','🙏','🔥','🎉','😎','🤔','😢','😡','👏','❤️','💯','🤝','👀'];
+  EMOJI.forEach((ch) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = ch;
+    b.addEventListener('click', () => {
+      const i = $('#chatInput');
+      i.value += ch;
+      i.focus();
+    });
+    $('#emo').append(b);
+  });
+  $('#emoBtn').addEventListener('click', () => { $('#emo').hidden = !$('#emo').hidden; });
+})();
+</script>
+</body>
+</html>
